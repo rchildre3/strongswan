@@ -21,11 +21,11 @@ fuzz_ldflags = ${libfuzzer} \
 	@FUZZING_LDFLAGS@
 
 if USE_OPENSSL
-fuzz_ldflags += -Wl,-Bstatic -lcrypto -Wl,-Bdynamic
+fuzz_ldflags += -lcrypto
 endif
 
 if USE_GMP
-fuzz_ldflags += -Wl,-Bstatic -lgmp -Wl,-Bdynamic
+fuzz_ldflags += -lgmp
 endif
 
 pa_tnc_ldflags = \
