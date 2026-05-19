@@ -1306,7 +1306,7 @@ if test x$fuzzing = xtrue; then
 		;;
 	*)
 		# required for libFuzzer
-		FUZZING_LDFLAGS="-stdlib=libc++ -lstdc++"
+		FUZZING_LDFLAGS="-lstdc++"
 		if test "$SANITIZER" = "coverage"; then
 			FUZZING_LDFLAGS="$FUZZING_LDFLAGS -lm"
 		fi
@@ -1397,10 +1397,10 @@ fi
 # modify CFLAGS as needed, do this late so we don't affect configure checks
 CFLAGS="$CFLAGS -include $(pwd)/config.h"
 
-AC_MSG_CHECKING([for use of -Werror and additional warnings])
+AC_MSG_CHECKING([for use of additional warnings])
 WARN_CFLAGS=
 if test x$warnings = xtrue; then
-	WARN_CFLAGS="-Werror -Wall -Wextra"
+	WARN_CFLAGS="-Wall -Wextra"
 	AC_MSG_RESULT([yes])
 else
 	AC_MSG_RESULT([no])

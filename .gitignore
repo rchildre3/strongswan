@@ -56,3 +56,11 @@ coverage/
 test-driver
 nbproject/
 *.[si]
+
+.cache/
+
+corpus/
+corpus_*/
+artifacts/
+artifacts_*/
+fuzz-*.log
