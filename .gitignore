@@ -58,3 +58,9 @@ nbproject/
 *.[si]
 .cache/clangd
 compile_commands.json
+
+corpus/
+corpus_*/
+artifacts/
+artifacts_*/
+fuzz-*.log
