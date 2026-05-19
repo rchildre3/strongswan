@@ -25,6 +25,18 @@ int LLVMFuzzerInitialize(int *argc, char ***argv)
 	libcharon_init();
 	atexit(library_deinit);
 	atexit(libcharon_deinit);
+
+#if 0
+	/* useful for debugging */
+	level_t levels[DBG_MAX];
+	for (unsigned int i = 0; i < DBG_MAX; i++)
+	{
+		levels[i] = LEVEL_RAW;
+	}
+	charon->set_default_loggers(charon, levels, TRUE);
+	charon->load_loggers(charon);
+#endif
+
 	return 0;
 }
 
