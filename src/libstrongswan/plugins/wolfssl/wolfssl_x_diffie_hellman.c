@@ -121,8 +121,9 @@ METHOD(key_exchange_t, set_public_key_25519, bool,
 	{
 		return FALSE;
 	}
-
-	if (wc_curve25519_import_public_ex(value.ptr, value.len, &this->pub.key25519,
+	if (wc_curve25519_check_public(value.ptr, value.len,
+								   EC25519_LITTLE_ENDIAN) != 0 ||
+		wc_curve25519_import_public_ex(value.ptr, value.len, &this->pub.key25519,
 									   EC25519_LITTLE_ENDIAN) != 0)
 	{
 		DBG1(DBG_LIB, "%N public value is malformed",
@@ -211,7 +212,9 @@ METHOD(key_exchange_t, set_public_key_448, bool,
 		return FALSE;
 	}
 
-	if (wc_curve448_import_public_ex(value.ptr, value.len, &this->pub.key448,
+	if (wc_curve448_check_public(value.ptr, value.len,
+								 EC448_LITTLE_ENDIAN) != 0 ||
+		wc_curve448_import_public_ex(value.ptr, value.len, &this->pub.key448,
 									 EC448_LITTLE_ENDIAN) != 0)
 	{
 		DBG1(DBG_LIB, "%N public value is malformed",
