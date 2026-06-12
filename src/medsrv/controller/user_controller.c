@@ -149,6 +149,7 @@ static bool verify_login(private_user_controller_t *this,
 			default:
 				request->setf(request, "error=Username invalid, "
 							  "valid characters: A-Z a-z 0-9 - _ @ .");
+				return FALSE;
 		}
 	}
 	return TRUE;
