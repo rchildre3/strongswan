@@ -186,77 +186,79 @@ static void segv_handler(int signal)
 static bool check_pidfile()
 {
 	struct stat stb;
+	int fd;
 
-	if (stat(PID_FILE, &stb) == 0)
+	if (lstat(PID_FILE, &stb) == 0)
 	{
-		pidfile = fopen(PID_FILE, "r");
-		if (pidfile)
+		if (S_ISREG(stb.st_mode))
 		{
-			char buf[64];
-			pid_t pid = 0;
+			pidfile = fopen(PID_FILE, "r");
+			if (pidfile)
+			{
+				char buf[64];
+				pid_t pid = 0;
 
-			memset(buf, 0, sizeof(buf));
-			if (fread(buf, 1, sizeof(buf), pidfile))
-			{
-				buf[sizeof(buf) - 1] = '\0';
-				pid = atoi(buf);
-			}
-			fclose(pidfile);
-			pidfile = NULL;
-			if (pid && pid != getpid() && kill(pid, 0) == 0)
-			{
-				DBG1(DBG_DMN, "charon already running ('"PID_FILE"' exists)");
-				return TRUE;
+				memset(buf, 0, sizeof(buf));
+				if (fread(buf, 1, sizeof(buf), pidfile))
+				{
+					buf[sizeof(buf) - 1] = '\0';
+					pid = atoi(buf);
+				}
+				fclose(pidfile);
+				pidfile = NULL;
+				if (pid && pid != getpid() && kill(pid, 0) == 0)
+				{
+					DBG1(DBG_DMN, "charon already running ('"PID_FILE"' exists)");
+					return TRUE;
+				}
 			}
 		}
 		DBG1(DBG_DMN, "removing pidfile '"PID_FILE"', process not running");
 		unlink(PID_FILE);
 	}
 
-	/* create new pidfile */
-	pidfile = fopen(PID_FILE, "w");
-	if (pidfile)
-	{
-		int fd;
-
-		fd = fileno(pidfile);
-		if (fd == -1)
-		{
-			DBG1(DBG_DMN, "unable to determine fd for '"PID_FILE"'");
-			return TRUE;
-		}
-		if (fcntl(fd, F_SETFD, FD_CLOEXEC) == -1)
-		{
-			DBG1(DBG_LIB, "setting FD_CLOEXEC for '"PID_FILE"' failed: %s",
-				 strerror(errno));
-		}
-		/* Only change owner of the pidfile if we have CAP_CHOWN. Otherwise,
-		 * attempt to change group of pidfile to group under which charon
-		 * runs after dropping caps. This requires the user that charon
-		 * starts as to:
-		 * a) Have write access to the socket dir.
-		 * b) Belong to the group that charon will run under after dropping
-		 *    caps. */
-		if (lib->caps->check(lib->caps, CAP_CHOWN))
-		{
-			ignore_result(fchown(fd,
-								 lib->caps->get_uid(lib->caps),
-								 lib->caps->get_gid(lib->caps)));
-		}
-		else
-		{
-			ignore_result(fchown(fd, -1,
-								 lib->caps->get_gid(lib->caps)));
-		}
-		fprintf(pidfile, "%d\n", getpid());
-		fflush(pidfile);
-		return FALSE;
-	}
-	else
+	/* create new pidfile securely without following symlinks */
+	fd = open(PID_FILE, O_CREAT | O_EXCL | O_WRONLY, 0644);
+	if (fd == -1)
 	{
 		DBG1(DBG_DMN, "unable to create pidfile '"PID_FILE"'");
 		return TRUE;
 	}
+	if (fcntl(fd, F_SETFD, FD_CLOEXEC) == -1)
+	{
+		DBG1(DBG_LIB, "setting FD_CLOEXEC for '"PID_FILE"' failed: %s",
+			 strerror(errno));
+	}
+	/* Only change owner of the pidfile if we have CAP_CHOWN. Otherwise,
+	 * attempt to change group of pidfile to group under which charon
+	 * runs after dropping caps. This requires the user that charon
+	 * starts as to:
+	 * a) Have write access to the socket dir.
+	 * b) Belong to the group that charon will run under after dropping
+	 *    caps. */
+	if (lib->caps->check(lib->caps, CAP_CHOWN))
+	{
+		ignore_result(fchown(fd,
+							 lib->caps->get_uid(lib->caps),
+							 lib->caps->get_gid(lib->caps)));
+	}
+	else
+	{
+		ignore_result(fchown(fd, -1,
+							 lib->caps->get_gid(lib->caps)));
+	}
+	pidfile = fdopen(fd, "w");
+	if (!pidfile)
+	{
+		DBG1(DBG_DMN, "unable to open pidfile '"PID_FILE"': %s",
+			 strerror(errno));
+		close(fd);
+		unlink(PID_FILE);
+		return TRUE;
+	}
+	fprintf(pidfile, "%d\n", getpid());
+	fflush(pidfile);
+	return FALSE;
 }
 
 /**
