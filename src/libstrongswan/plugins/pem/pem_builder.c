@@ -96,6 +96,11 @@ static status_t pem_decrypt(chunk_t *blob, encryption_algorithm_t alg,
 	chunk_t key = {alloca(key_size), key_size};
 	uint8_t padding, *last_padding_pos, *first_padding_pos;
 
+	if (!key_size)
+	{
+		return FAILED;
+	}
+
 	/* build key from passphrase and IV */
 	hasher = lib->crypto->create_hasher(lib->crypto, HASH_MD5);
 	if (hasher == NULL)
@@ -108,6 +113,7 @@ static status_t pem_decrypt(chunk_t *blob, encryption_algorithm_t alg,
 	if (!hasher->get_hash(hasher, passphrase, NULL) ||
 		!hasher->get_hash(hasher, salt, hash.ptr))
 	{
+		hasher->destroy(hasher);
 		return FAILED;
 	}
 	memcpy(key.ptr, hash.ptr, hash.len);
@@ -118,6 +124,7 @@ static status_t pem_decrypt(chunk_t *blob, encryption_algorithm_t alg,
 			!hasher->get_hash(hasher, passphrase, NULL) ||
 			!hasher->get_hash(hasher, salt, hash.ptr))
 		{
+			hasher->destroy(hasher);
 			return FAILED;
 		}
 		memcpy(key.ptr + hash.len, hash.ptr, key.len - hash.len);
@@ -339,6 +346,11 @@ static status_t pem_to_bin(chunk_t *blob, bool *pgp)
 	if (!encrypted)
 	{
 		return SUCCESS;
+	}
+	if (alg == ENCR_UNDEFINED || !key_size)
+	{
+		DBG1(DBG_ASN, "  encrypted PEM file has no valid DEK-Info");
+		return PARSE_ERROR;
 	}
 
 	enumerator = lib->credmgr->create_shared_enumerator(lib->credmgr,
