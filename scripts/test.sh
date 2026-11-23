@@ -354,9 +354,6 @@ win*)
 		win64)
 			DEPS="$DEPS mingw-w64-x86_64-toolchain"
 			;;
-		win32)
-			DEPS="$DEPS mingw-w64-i686-toolchain"
-			;;
 		esac
 	fi
 	CFLAGS="$CFLAGS -mno-ms-bitfields"
